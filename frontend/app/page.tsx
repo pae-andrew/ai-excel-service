@@ -42,9 +42,15 @@ export default function Page() {
 
   return (
     <main style={{ maxWidth: 780, margin: "0 auto", padding: 16, height: "100vh", display: "flex", flexDirection: "column" }}>
-      <h2>📊 Excel AI-помощник</h2>
+      <h2>📊 AI-помощник по таблицам</h2>
 
       <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+        {msgs.length === 0 && (
+          <div style={{ margin: "auto", textAlign: "center", color: "#9aa0a6", maxWidth: 420 }}>
+            <p style={{ fontSize: 15 }}>Загрузи <b>.xlsx / .csv / .docx / .pdf</b> и опиши задачу.</p>
+            <p style={{ fontSize: 13 }}>Например: «удали дубли», «сводная по регионам», «посчитай маржу и добавь столбец».</p>
+          </div>
+        )}
         {msgs.map((m, i) => (
           <div key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "85%", background: m.role === "user" ? "#2563eb" : "#fff", color: m.role === "user" ? "#fff" : "#111", padding: "8px 12px", borderRadius: 10, border: "1px solid #e3e6ea", whiteSpace: "pre-wrap" }}>
             {m.content || (busy && i === msgs.length - 1 ? "…" : "")}
@@ -61,7 +67,7 @@ export default function Page() {
       </div>
 
       <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}>
-        <input type="file" accept=".xlsx,.xlsm,.csv" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+        <input type="file" accept=".xlsx,.xlsm,.csv,.docx,.pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} />
         {sentFile.current && <span style={{ fontSize: 12, color: "#888" }}>файл загружен</span>}
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>

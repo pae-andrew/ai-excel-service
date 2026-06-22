@@ -46,9 +46,12 @@ def main():
     _limit_resources()
 
     with open(in_pickle, "rb") as f:
-        df = pickle.load(f)
+        sheets = pickle.load(f)  # dict[name -> DataFrame]
     with open(code_file, "r") as f:
         code = f.read()
+
+    active = next(iter(sheets), None)
+    df = sheets[active] if active is not None else None
 
     import pandas as pd
     import numpy as np
@@ -61,7 +64,7 @@ def main():
     }
     safe_builtins["__import__"] = _guarded_import
 
-    env = {"__builtins__": safe_builtins, "pd": pd, "np": np, "df": df}
+    env = {"__builtins__": safe_builtins, "pd": pd, "np": np, "df": df, "sheets": sheets}
 
     out = io.StringIO()
     err = None
@@ -74,9 +77,13 @@ def main():
     finally:
         sys.stdout = real_stdout
 
-    df = env.get("df", df)
+    # Result = the sheets dict. If the model reassigned `df`, sync it back to the
+    # active sheet so the simple "work on df" path keeps working.
+    sheets = env.get("sheets", sheets)
+    if active is not None and "df" in env and env["df"] is not None:
+        sheets[active] = env["df"]
     with open(out_pickle, "wb") as f:
-        pickle.dump(df, f)
+        pickle.dump(sheets, f)
 
     real_stdout.write(json.dumps({"stdout": out.getvalue()[:8000], "error": err}))
 

@@ -10,14 +10,15 @@ _RUNNER = os.path.join(os.path.dirname(__file__), "_runner.py")
 TIMEOUT_S = 15
 
 
-def run(df, code: str):
-    """Exec `code` with `df`/`pd`/`np` in scope. Returns (new_df, stdout, error)."""
+def run(sheets, code: str):
+    """Exec `code` with `sheets`/`df`/`pd`/`np` in scope.
+    Returns (new_sheets, stdout, error)."""
     with tempfile.TemporaryDirectory() as d:
         in_p = os.path.join(d, "in.pkl")
         out_p = os.path.join(d, "out.pkl")
         code_p = os.path.join(d, "code.py")
         with open(in_p, "wb") as f:
-            pickle.dump(df, f)
+            pickle.dump(sheets, f)
         with open(code_p, "w") as f:
             f.write(code)
 
@@ -28,19 +29,19 @@ def run(df, code: str):
                 cwd=d, env={"PATH": os.environ.get("PATH", "")},
             )
         except subprocess.TimeoutExpired:
-            return df, "", f"execution timed out after {TIMEOUT_S}s"
+            return sheets, "", f"execution timed out after {TIMEOUT_S}s"
 
         if proc.returncode != 0:
             # Hard crash (e.g. rlimit kill) — stderr has the cause.
-            return df, "", (proc.stderr or "subprocess failed")[:2000]
+            return sheets, "", (proc.stderr or "subprocess failed")[:2000]
 
         try:
             meta = json.loads(proc.stdout)
         except json.JSONDecodeError:
-            return df, "", (proc.stdout or proc.stderr)[:2000]
+            return sheets, "", (proc.stdout or proc.stderr)[:2000]
 
-        new_df = df
+        new_sheets = sheets
         if os.path.exists(out_p):
             with open(out_p, "rb") as f:
-                new_df = pickle.load(f)
-        return new_df, meta.get("stdout", ""), meta.get("error")
+                new_sheets = pickle.load(f)
+        return new_sheets, meta.get("stdout", ""), meta.get("error")

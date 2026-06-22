@@ -37,17 +37,17 @@ async def chat(
     if file is not None:
         data = await file.read()
         try:
-            df = files.read_to_df(data, file.filename)
-        except ValueError as e:
+            sheets = files.read_to_sheets(data, file.filename)
+        except Exception as e:  # parse/validation failures -> 400, not 500
             raise HTTPException(400, str(e))
-        files.session_put(session_id, df)
+        files.session_put(session_id, sheets)
     else:
-        df = files.session_get(session_id)
-        if df is None:
+        sheets = files.session_get(session_id)
+        if sheets is None:
             raise HTTPException(400, "upload a spreadsheet first")
 
     return StreamingResponse(
-        agent.run_stream(df, history, session_id),
+        agent.run_stream(sheets, history, session_id),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
