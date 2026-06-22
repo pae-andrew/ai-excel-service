@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+node_modules/
+.next/
+next-env.d.ts
+.DS_Store
+._*
+.idea/
+.agents/
