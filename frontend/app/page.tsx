@@ -9,10 +9,12 @@ type Chat = { id: string; sessionId: string; title: string; msgs: Msg[] };
 const STORE_KEY = "chats.v1";
 const newId = () => crypto.randomUUID();
 const blankChat = (): Chat => ({ id: newId(), sessionId: newId(), title: "Новый чат", msgs: [] });
-const ACCEPT = [".xlsx", ".xlsm", ".csv", ".docx", ".pdf"];
+const ACCEPT = [".xlsx", ".xlsm", ".csv", ".docx", ".pdf", ".png", ".jpg", ".jpeg", ".webp", ".gif"];
+const isImage = (name: string) => /\.(png|jpe?g|webp|gif)$/i.test(name);
 
 function fileKind(name: string): { tag: string; fg: string; bg: string } {
   const n = name.toLowerCase();
+  if (isImage(n)) return { tag: "IMG", fg: "var(--accent)", bg: "var(--accent-soft)" };
   if (n.endsWith(".pdf")) return { tag: "PDF", fg: "var(--file-pdf-fg)", bg: "var(--file-pdf-bg)" };
   if (n.endsWith(".docx")) return { tag: "DOC", fg: "var(--accent)", bg: "var(--accent-soft)" };
   if (n.endsWith(".csv")) return { tag: "CSV", fg: "var(--file-xls-fg)", bg: "var(--file-xls-bg)" };
@@ -93,6 +95,16 @@ export default function Page() {
     e.preventDefault(); setDragOver(false);
     const dropped = Array.from(e.dataTransfer.files).filter((f) => ACCEPT.some((ext) => f.name.toLowerCase().endsWith(ext)));
     if (dropped.length) setFiles(dropped);
+  }
+
+  function onPaste(e: React.ClipboardEvent) {
+    const imgs = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith("image/"));
+    if (imgs.length) {
+      e.preventDefault();
+      // clipboard screenshots are often named "image.png" — give them unique names
+      const named = imgs.map((f) => new File([f], f.name && f.name !== "image.png" ? f.name : `screenshot-${Date.now()}.png`, { type: f.type }));
+      setFiles((prev) => [...prev, ...named]);
+    }
   }
 
   async function send() {
@@ -246,7 +258,9 @@ export default function Page() {
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
                 {files.map((f, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "6px 10px 6px 7px", boxShadow: "var(--shadow-card)" }}>
-                    <FileTile name={f.name} />
+                    {isImage(f.name)
+                      ? <img src={URL.createObjectURL(f)} alt="" style={{ width: 30, height: 30, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+                      : <FileTile name={f.name} />}
                     <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
                     <span className="mono" style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{fmtSize(f.size)}</span>
                     <span onClick={() => setFiles(files.filter((_, j) => j !== i))} style={{ color: "var(--text-muted)", cursor: "pointer", display: "flex" }}>{I.trash}</span>
@@ -261,12 +275,12 @@ export default function Page() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 7, boxShadow: "var(--shadow-card)" }}>
               <input ref={fileInput} type="file" multiple accept={ACCEPT.join(",")} style={{ display: "none" }} onChange={(e) => setFiles(Array.from(e.target.files || []))} />
               <button onClick={() => fileInput.current?.click()} title="Прикрепить файл" style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 11, border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{I.plus}</button>
-              <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Спросите про таблицу или документ…"
+              <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} onPaste={onPaste} placeholder="Спросите про таблицу, документ или скриншот…"
                 style={{ flex: 1, border: "none", outline: "none", background: "transparent", color: "var(--text)", fontSize: 14.5, fontFamily: "inherit" }} />
               <button onClick={send} disabled={busy || !input.trim()} title="Отправить" style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 11, border: "none", background: "var(--accent)", color: "var(--accent-on)", cursor: busy || !input.trim() ? "default" : "pointer", opacity: busy || !input.trim() ? 0.5 : 1, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "var(--shadow-btn)" }}>{I.up}</button>
             </div>
             <div className="mono" style={{ fontSize: 10.5, color: "var(--text-muted)", letterSpacing: 0.5, marginTop: 8, textAlign: "center" }}>
-              XLSX · CSV · PDF · DOCX · до 25 МБ · можно несколько файлов
+              XLSX · CSV · PDF · DOCX · PNG/JPG · вставка скриншота ⌘V · несколько файлов
             </div>
           </div>
         </div>

@@ -62,10 +62,16 @@ def _hash(sheets: dict):
         return None  # unhashable content -> treat as possibly changed
 
 
-def run_stream(sheets: dict, history: list[dict], session_id: str = ""):
-    """Yield SSE strings. `history` = [{role, content(str)}...] from the client."""
+def run_stream(sheets: dict, history: list[dict], session_id: str = "", images: list = None):
+    """Yield SSE strings. `history` = [{role, content(str)}...] from the client.
+    `images` = [(media_type, base64)] attached to the latest user message (vision)."""
     system = SYSTEM.format(schema=files.schema_markdown(sheets))
     messages = [{"role": m["role"], "content": m["content"]} for m in history]
+    if images and messages and messages[-1]["role"] == "user":
+        blocks = [{"type": "text", "text": messages[-1]["content"]}]
+        blocks += [{"type": "image", "source": {"type": "base64", "media_type": mt, "data": d}}
+                   for mt, d in images]
+        messages[-1]["content"] = blocks
     start_hash = _hash(sheets)
     tool_ran = False
 
