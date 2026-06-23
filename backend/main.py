@@ -27,17 +27,18 @@ def health():
 async def chat(
     session_id: str = Form(...),
     messages: str = Form(...),
-    file: UploadFile | None = File(None),
+    file: list[UploadFile] | None = File(None),
 ):
     try:
         history = json.loads(messages)
     except json.JSONDecodeError:
         raise HTTPException(400, "messages must be valid JSON")
 
-    if file is not None:
-        data = await file.read()
+    uploaded = [f for f in (file or []) if f and f.filename]
+    if uploaded:
+        items = [(await f.read(), f.filename) for f in uploaded]
         try:
-            sheets = files.read_to_sheets(data, file.filename)
+            sheets = files.read_files_to_sheets(items)
         except Exception as e:  # parse/validation failures -> 400, not 500
             raise HTTPException(400, str(e))
         files.session_put(session_id, sheets)

@@ -13,13 +13,13 @@ export type StreamEvents = {
 export async function chat(
   sessionId: string,
   history: Turn[],
-  file: File | null,
+  files: File[],
   ev: StreamEvents,
 ) {
   const fd = new FormData();
   fd.append("session_id", sessionId);
   fd.append("messages", JSON.stringify(history));
-  if (file) fd.append("file", file);
+  for (const f of files) fd.append("file", f);
 
   const res = await fetch(`${API}/chat`, { method: "POST", body: fd });
   if (!res.ok) {

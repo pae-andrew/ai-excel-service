@@ -14,7 +14,7 @@ export default function Page() {
   const [activeId, setActiveId] = useState("");
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const sentFile = useRef(false);
   const activeRef = useRef("");
   activeRef.current = activeId;
@@ -45,12 +45,12 @@ export default function Page() {
     setChats((cs) => [c, ...cs]);
     setActiveId(c.id);
     sentFile.current = false;
-    setFile(null);
+    setFiles([]);
   }
 
   function selectChat(id: string) {
     setActiveId(id);
-    setFile(null);
+    setFiles([]);
     sentFile.current = (chats.find((c) => c.id === id)?.msgs.length ?? 0) > 0;
   }
 
@@ -66,7 +66,7 @@ export default function Page() {
   async function send() {
     const text = input.trim();
     if (!text || busy || !active) return;
-    if (!file && !sentFile.current) { alert("Загрузите файл: .xlsx / .csv / .docx / .pdf"); return; }
+    if (files.length === 0 && !sentFile.current) { alert("Загрузите файл(ы): .xlsx / .csv / .docx / .pdf"); return; }
     setInput("");
     setBusy(true);
 
@@ -74,14 +74,14 @@ export default function Page() {
     const title = active.msgs.length === 0 ? text.slice(0, 40) : active.title;
     patchActive((c) => ({ ...c, title, msgs: [...c.msgs, { role: "user", content: text }, { role: "assistant", content: "" }] }));
 
-    const fileToSend = file; // send whenever a (new) file is picked; else reuse backend session
-    await chat(active.sessionId, history, fileToSend, {
+    const filesToSend = files; // send whenever new files are picked; else reuse backend session
+    await chat(active.sessionId, history, filesToSend, {
       onText: (t) => patchLast((a) => { a.content += t; }),
       onTool: (code) => patchLast((a) => { a.tools = [...(a.tools || []), code]; }),
       onDone: (d) => { if (d.download_id) patchLast((a) => { a.download = { id: d.download_id!, name: d.filename || "result.xlsx" }; }); },
       onError: (m) => patchLast((a) => { a.content += `\n⚠️ ${m}`; }),
     });
-    if (fileToSend) { sentFile.current = true; setFile(null); }
+    if (filesToSend.length) { sentFile.current = true; setFiles([]); }
     setBusy(false);
   }
 
@@ -108,8 +108,8 @@ export default function Page() {
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
           {msgs.length === 0 && (
             <div style={{ margin: "auto", textAlign: "center", color: "#9aa0a6", maxWidth: 420 }}>
-              <p style={{ fontSize: 15 }}>Загрузи <b>.xlsx / .csv / .docx / .pdf</b> и опиши задачу.</p>
-              <p style={{ fontSize: 13 }}>Например: «удали дубли», «сводная по регионам», «посчитай маржу и добавь столбец».</p>
+              <p style={{ fontSize: 15 }}>Загрузи один или несколько <b>.xlsx / .csv / .docx / .pdf</b> и опиши задачу.</p>
+              <p style={{ fontSize: 13 }}>Например: «объедини два файла по колонке id», «сводная по регионам», «посчитай маржу».</p>
             </div>
           )}
           {msgs.map((m, i) => (
@@ -128,8 +128,9 @@ export default function Page() {
         </div>
 
         <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}>
-          <input type="file" accept=".xlsx,.xlsm,.csv,.docx,.pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-          {sentFile.current && !file && <span style={{ fontSize: 12, color: "#888" }}>файл загружен</span>}
+          <input type="file" multiple accept=".xlsx,.xlsm,.csv,.docx,.pdf" onChange={(e) => setFiles(Array.from(e.target.files || []))} />
+          {files.length > 0 && <span style={{ fontSize: 12, color: "#555" }}>выбрано: {files.length}</span>}
+          {sentFile.current && files.length === 0 && <span style={{ fontSize: 12, color: "#888" }}>файлы загружены</span>}
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
           <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()}

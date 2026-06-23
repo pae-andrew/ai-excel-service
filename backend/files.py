@@ -4,6 +4,7 @@ Data model across the app is `sheets`: dict[sheet_name -> DataFrame]. xlsx may
 have many sheets; csv/docx/pdf produce one or more tables, each becomes a sheet.
 """
 import io
+import os
 import re
 import time
 import uuid
@@ -43,6 +44,20 @@ def read_to_sheets(data: bytes, filename: str) -> dict[str, pd.DataFrame]:
     if name.endswith(".pdf"):
         return _tables_from_pdf(bio)
     raise ValueError("unsupported file type (use .xlsx, .csv, .docx or .pdf)")
+
+
+def read_files_to_sheets(items: list[tuple[bytes, str]]) -> dict[str, pd.DataFrame]:
+    """Merge several uploaded files into one sheets dict. With >1 file, sheet
+    names are prefixed by the file stem so Claude can tell them apart and join."""
+    out: dict[str, pd.DataFrame] = {}
+    used: set[str] = set()
+    multi = len(items) > 1
+    for data, filename in items:
+        stem = os.path.splitext(os.path.basename(filename or "file"))[0]
+        for sname, df in read_to_sheets(data, filename).items():
+            label = f"{stem}_{sname}" if multi else sname
+            out[_safe_name(label, used)] = df
+    return out
 
 
 def _tables_from_docx(bio: io.BytesIO) -> dict[str, pd.DataFrame]:
