@@ -1,0 +1,62 @@
+/* Variant A — Warm smart minimalism · Cyprus + Sand. Tokens from HANDOFF.md. */
+:root {
+  --accent: #004741;
+  --accent-soft: #DCE7E3;
+  --accent-on: #FFFFFF;
+  --success: #1F9E63;
+  --danger: #E0533D;
+  --bg: #F0EDE4;
+  --sidebar: #E7E2D5;
+  --surface: #FFFFFF;
+  --border: #ECE7DE;
+  --text: #26221B;
+  --text-secondary: #8A8178;
+  --text-muted: #A89F92;
+  --mint: #1F9E63;
+  --file-xls-fg: #1F9E63; --file-xls-bg: #E9F6EF;
+  --file-pdf-fg: #E0533D; --file-pdf-bg: #FBEAE6;
+  --shadow-card: 0 2px 8px rgba(40, 34, 24, .05);
+  --shadow-btn: 0 4px 12px -2px rgba(0, 71, 65, .5);
+}
+
+[data-theme="dark"] {
+  --accent: #F0EDE4;
+  --accent-soft: rgba(240, 237, 228, .20);
+  --accent-on: #0A1F1B;
+  --success: #4FBE8B;
+  --danger: #F0846E;
+  --bg: #0A1F1B;
+  --sidebar: #0E2521;
+  --surface: #123029;
+  --border: rgba(255, 255, 255, .09);
+  --text: #F2EFE9;
+  --text-secondary: #A39C90;
+  --text-muted: #6F685C;
+  --mint: #8FD9C2;
+  --file-xls-fg: #4FBE8B; --file-xls-bg: rgba(79, 190, 139, .16);
+  --file-pdf-fg: #F0846E; --file-pdf-bg: rgba(224, 83, 61, .18);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, .3);
+  --shadow-btn: 0 4px 12px -2px rgba(240, 237, 228, .35);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Manrope', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* scrollbars stay subtle in both themes */
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+
+@keyframes dotPulse { 0%, 60%, 100% { opacity: .25; } 30% { opacity: 1; } }
+.typing span {
+  display: inline-block; width: 6px; height: 6px; margin: 0 2px; border-radius: 50%;
+  background: var(--text-secondary); animation: dotPulse 1.2s infinite;
+}
+.typing span:nth-child(2) { animation-delay: .2s; }
+.typing span:nth-child(3) { animation-delay: .4s; }
