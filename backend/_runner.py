@@ -34,8 +34,10 @@ _real_import = builtins.__import__
 def _limit_resources():
     try:
         import resource
-        # 512 MB address space, 10s CPU. Best-effort; not available on all OSes.
-        resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024,) * 2)
+        # 10s CPU cap. Best-effort; not available on all OSes.
+        # ponytail: no RLIMIT_AS — on Linux it caps *virtual* address space, and
+        # numpy/pandas reserve far more than they use, so a low cap kills import.
+        # Real memory is bounded by the container limit + the wall-clock timeout.
         resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
     except Exception:
         pass
