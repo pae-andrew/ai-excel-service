@@ -1,0 +1,28 @@
+name: Deploy backend to Railway
+
+# Vercel auto-deploys the frontend from GitHub directly. Railway's native
+# GitHub auto-deploy is flaky for CLI-created services, so we deploy the
+# backend from CI with the Railway CLI instead.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install -g @railway/cli
+      - name: Deploy
+        working-directory: backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service ai-excel-backend --ci
