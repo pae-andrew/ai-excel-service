@@ -1,4 +1,4 @@
-"""FastAPI app: /chat (SSE), /download/{id}, /health."""
+"""FastAPI app: /chat (SSE), /download/{id}, /health. Deployed via GitHub Actions."""
 import os
 import json
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
