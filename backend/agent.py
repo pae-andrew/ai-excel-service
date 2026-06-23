@@ -40,6 +40,9 @@ SYSTEM = (
     "(dropping rows/columns/sheets), briefly state what you'll do. Inspect with "
     "print() first when unsure of the data. Answer in the user's language. After "
     "modifying the data, tell the user the result is ready to download.\n\n"
+    "If no file is loaded (the workbook is empty), just answer the user's question "
+    "or discuss the task normally, and invite them to attach a file when they want "
+    "you to work on real data — do not call run_pandas when there is no data.\n\n"
     "Current workbook:\n{schema}"
 )
 

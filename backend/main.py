@@ -43,9 +43,8 @@ async def chat(
             raise HTTPException(400, str(e))
         files.session_put(session_id, sheets)
     else:
-        sheets = files.session_get(session_id)
-        if sheets is None:
-            raise HTTPException(400, "upload a spreadsheet first")
+        # No new upload: reuse this session's data, or chat with no data at all.
+        sheets = files.session_get(session_id) or {}
 
     return StreamingResponse(
         agent.run_stream(sheets, history, session_id),

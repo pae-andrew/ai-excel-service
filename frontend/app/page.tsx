@@ -15,7 +15,18 @@ export default function Page() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [dragOver, setDragOver] = useState(false);
   const sentFile = useRef(false);
+
+  const ACCEPT = [".xlsx", ".xlsm", ".csv", ".docx", ".pdf"];
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const dropped = Array.from(e.dataTransfer.files).filter((f) =>
+      ACCEPT.some((ext) => f.name.toLowerCase().endsWith(ext)),
+    );
+    if (dropped.length) setFiles(dropped);
+  }
   const activeRef = useRef("");
   activeRef.current = activeId;
 
@@ -66,7 +77,6 @@ export default function Page() {
   async function send() {
     const text = input.trim();
     if (!text || busy || !active) return;
-    if (files.length === 0 && !sentFile.current) { alert("Загрузите файл(ы): .xlsx / .csv / .docx / .pdf"); return; }
     setInput("");
     setBusy(true);
 
@@ -101,15 +111,25 @@ export default function Page() {
         </div>
       </aside>
 
-      {/* Main: chat */}
-      <main style={{ flex: 1, maxWidth: 820, margin: "0 auto", padding: 16, display: "flex", flexDirection: "column" }}>
+      {/* Main: chat (drop files anywhere here) */}
+      <main
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
+        onDrop={onDrop}
+        style={{ flex: 1, maxWidth: 820, margin: "0 auto", padding: 16, display: "flex", flexDirection: "column", position: "relative", outline: dragOver ? "2px dashed #2563eb" : "none", outlineOffset: -8, borderRadius: 8 }}
+      >
+        {dragOver && (
+          <div style={{ position: "absolute", inset: 8, background: "rgba(37,99,235,0.06)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb", fontSize: 16, pointerEvents: "none", zIndex: 5 }}>
+            Отпусти файлы сюда
+          </div>
+        )}
         <h2 style={{ marginTop: 4 }}>📊 AI-помощник по таблицам</h2>
 
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
           {msgs.length === 0 && (
             <div style={{ margin: "auto", textAlign: "center", color: "#9aa0a6", maxWidth: 420 }}>
-              <p style={{ fontSize: 15 }}>Загрузи один или несколько <b>.xlsx / .csv / .docx / .pdf</b> и опиши задачу.</p>
-              <p style={{ fontSize: 13 }}>Например: «объедини два файла по колонке id», «сводная по регионам», «посчитай маржу».</p>
+              <p style={{ fontSize: 15 }}>Перетащи сюда (или выбери) <b>.xlsx / .csv / .docx / .pdf</b> — или просто напиши вопрос.</p>
+              <p style={{ fontSize: 13 }}>Например: «объедини два файла по id», «сводная по регионам», «посчитай маржу». Можно и без файла.</p>
             </div>
           )}
           {msgs.map((m, i) => (
