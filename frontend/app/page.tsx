@@ -233,9 +233,16 @@ export default function Page() {
                     <div className="typing" style={{ padding: "6px 0" }}><span /><span /><span /></div>
                   ) : null}
 
-                  {m.tools?.map((c, j) => (
-                    <pre key={j} className="mono" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)", padding: 10, borderRadius: 10, fontSize: 11.5, overflowX: "auto", marginTop: 10 }}>{c}</pre>
-                  ))}
+                  {m.tools && m.tools.length > 0 && (
+                    <details style={{ marginTop: 10 }}>
+                      <summary className="mono" style={{ ...monoCaps, color: "var(--text-muted)", cursor: "pointer", listStyle: "none" }}>
+                        ⌄ Код ({m.tools.length})
+                      </summary>
+                      {m.tools.map((c, j) => (
+                        <pre key={j} className="mono" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)", padding: 10, borderRadius: 10, fontSize: 11.5, overflowX: "auto", marginTop: 8 }}>{c}</pre>
+                      ))}
+                    </details>
+                  )}
 
                   {m.download && (
                     <div style={{ marginTop: 12, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 14, boxShadow: "var(--shadow-card)" }}>

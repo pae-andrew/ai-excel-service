@@ -1,6 +1,7 @@
 """Claude agentic loop: chat over a DataFrame with one run_pandas tool."""
 import os
 import json
+import base64
 import pandas as pd
 from anthropic import Anthropic
 
@@ -32,7 +33,13 @@ TOOLS = [{
         "  • CSV: save_result('data.csv', df.to_csv(index=False)).\n"
         "  • XLSX: also fine via save_result, or just edit `sheets`.\n"
         "  • PNG chart: matplotlib savefig(buf, format='png').\n"
-        "Available libs: pandas, numpy, matplotlib, openpyxl, python-docx, csv, io, base64. "
+        "Uploaded pictures are available as raw bytes: `images` (list) and `image` "
+        "(first). When the user wants a screenshot/photo turned into a PDF/DOCX, "
+        "EMBED the real bytes — do NOT redraw it. e.g. from PIL import Image; "
+        "Image.open(io.BytesIO(image)).convert('RGB').save(buf, 'PDF'); "
+        "save_result('screenshot.pdf', buf). For DOCX use docx with "
+        "doc.add_picture(io.BytesIO(image)).\n"
+        "Available libs: pandas, numpy, matplotlib, openpyxl, python-docx, PIL, csv, io, base64. "
         "No filesystem or network access — work in memory (io.BytesIO)."
     ),
     "input_schema": {
@@ -86,6 +93,8 @@ def run_stream(sheets: dict, history: list[dict], session_id: str = "", images: 
         blocks += [{"type": "image", "source": {"type": "base64", "media_type": mt, "data": d}}
                    for mt, d in images]
         messages[-1]["content"] = blocks
+    # Raw image bytes the sandbox can embed into output (image -> pdf/docx).
+    img_bytes = [base64.b64decode(d) for _, d in (images or [])]
     start_hash = _hash(sheets)
     tool_ran = False
     last_output = None  # (filename, bytes) from save_result, persists across turns
@@ -110,7 +119,7 @@ def run_stream(sheets: dict, history: list[dict], session_id: str = "", images: 
                 tool_ran = True
                 code = tu.input.get("code", "")
                 yield _sse("tool", {"code": code})
-                sheets, outputs, stdout, err = sandbox.run(sheets, code)
+                sheets, outputs, stdout, err = sandbox.run(sheets, code, img_bytes)
                 if outputs:
                     last_output = outputs[-1]
                 note = f" [saved {last_output[0]}]" if outputs else ""

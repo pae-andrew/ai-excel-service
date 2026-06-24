@@ -62,4 +62,19 @@ _, outs, _, err = sandbox.run(sheets, code)
 assert err is None, err
 assert outs and outs[-1][0] == "doc.docx" and outs[-1][1][:2] == b"PK", (err, outs and outs[-1][0])
 
-print("OK: sandbox + multi-sheet + output-files (csv/pdf/docx) self-check passed")
+# 10. Embed an uploaded image into a PDF via the `image` bytes (not redraw).
+import struct as _st, zlib as _zl
+def _png(w, h, rgb):
+    raw = b"".join(b"\x00" + bytes(rgb) * w for _ in range(h))
+    def ch(t, d):
+        c = t + d; return _st.pack(">I", len(d)) + c + _st.pack(">I", _zl.crc32(c) & 0xffffffff)
+    return (b"\x89PNG\r\n\x1a\n" + ch(b"IHDR", _st.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
+            + ch(b"IDAT", _zl.compress(raw)) + ch(b"IEND", b""))
+code = ("from PIL import Image\nimport io\n"
+        "buf = io.BytesIO(); Image.open(io.BytesIO(image)).convert('RGB').save(buf, 'PDF')\n"
+        "save_result('shot.pdf', buf)")
+_, outs, _, err = sandbox.run({}, code, images=[_png(6, 6, (10, 200, 90))])
+assert err is None, err
+assert outs and outs[-1][0] == "shot.pdf" and outs[-1][1][:4] == b"%PDF", (err, outs and outs[-1][0])
+
+print("OK: sandbox + multi-sheet + output-files (csv/pdf/docx) + image-embed self-check passed")

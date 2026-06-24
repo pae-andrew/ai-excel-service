@@ -36,8 +36,9 @@ def _ensure_mpl():
     _mpl_ready = True
 
 
-def run(sheets, code: str):
-    """Exec `code` with `sheets`/`df`/`pd`/`np`/`save_result` in scope.
+def run(sheets, code: str, images=None):
+    """Exec `code` with `sheets`/`df`/`pd`/`np`/`save_result`/`images` in scope.
+    `images` = [bytes] of uploaded pictures, also exposed for embedding into output.
     Returns (new_sheets, outputs, stdout, error). `outputs` = [(filename, bytes)]."""
     _ensure_mpl()
     with tempfile.TemporaryDirectory() as d:
@@ -45,7 +46,7 @@ def run(sheets, code: str):
         out_p = os.path.join(d, "out.pkl")
         code_p = os.path.join(d, "code.py")
         with open(in_p, "wb") as f:
-            pickle.dump(sheets, f)
+            pickle.dump({"sheets": sheets, "images": images or []}, f)
         with open(code_p, "w") as f:
             f.write(code)
 

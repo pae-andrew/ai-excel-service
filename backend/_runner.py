@@ -19,8 +19,8 @@ import builtins
 ALLOWED_IMPORTS = {
     "pandas", "numpy", "math", "statistics", "datetime", "re", "json",
     "collections", "itertools", "functools", "decimal", "openpyxl",
-    # output generation
-    "matplotlib", "docx", "csv", "io", "base64", "textwrap",
+    # output generation + image handling
+    "matplotlib", "docx", "csv", "io", "base64", "textwrap", "PIL",
 }
 
 
@@ -51,7 +51,9 @@ def main():
     _limit_resources()
 
     with open(in_pickle, "rb") as f:
-        sheets = pickle.load(f)  # dict[name -> DataFrame]
+        payload = pickle.load(f)  # {"sheets": dict, "images": [bytes]}
+    sheets = payload["sheets"]
+    image_bytes = payload.get("images", [])
     with open(code_file, "r") as f:
         code = f.read()
 
@@ -97,7 +99,8 @@ def main():
         outputs.append((str(filename), bytes(data)))
 
     env = {"__builtins__": safe_builtins, "pd": pd, "np": np, "df": df,
-           "sheets": sheets, "save_result": save_result}
+           "sheets": sheets, "save_result": save_result,
+           "images": image_bytes, "image": image_bytes[0] if image_bytes else None}
 
     out = io.StringIO()
     err = None
