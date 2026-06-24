@@ -69,14 +69,24 @@ async def chat(
     )
 
 
+DOWNLOAD_MIME = {
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".csv": "text/csv",
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".png": "image/png",
+}
+
+
 @app.get("/download/{did}")
 def download(did: str):
     item = files.fetch(did)
     if not item:
         raise HTTPException(404, "expired or not found")
     data, filename = item
+    mime = DOWNLOAD_MIME.get(os.path.splitext(filename.lower())[1], "application/octet-stream")
     return Response(
         content=data,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        media_type=mime,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

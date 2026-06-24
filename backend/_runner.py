@@ -9,6 +9,7 @@ Whitelist blocks os/sys/subprocess/socket, so no shell, no filesystem walk, no
 network. Not a true sandbox — for untrusted multi-tenant prod replace with a
 per-request container (gVisor/Firecracker).
 """
+import os
 import sys
 import io
 import json
@@ -18,6 +19,8 @@ import builtins
 ALLOWED_IMPORTS = {
     "pandas", "numpy", "math", "statistics", "datetime", "re", "json",
     "collections", "itertools", "functools", "decimal", "openpyxl",
+    # output generation
+    "matplotlib", "docx", "csv", "io", "base64", "textwrap",
 }
 
 
@@ -58,7 +61,7 @@ def main():
     import pandas as pd
     import numpy as np
 
-    # Reduced builtins: drop open/exec/eval/compile/input. Keep the rest usable.
+    # Reduced builtins: drop exec/eval/compile/input/raw-open. Keep the rest usable.
     safe_builtins = {
         k: getattr(builtins, k)
         for k in dir(builtins)
@@ -66,7 +69,35 @@ def main():
     }
     safe_builtins["__import__"] = _guarded_import
 
-    env = {"__builtins__": safe_builtins, "pd": pd, "np": np, "df": df, "sheets": sheets}
+    # ponytail: read-only open (python-docx/matplotlib need to read bundled
+    # templates/fonts). Write modes stay blocked; with os/subprocess/socket also
+    # blocked and the only secret living in env (not a file), read access is low
+    # risk here. Harden to a real container sandbox before untrusted multi-tenant.
+    _real_open = builtins.open
+    _workdir = os.path.realpath(os.getcwd())  # the ephemeral temp dir == HOME/MPLCONFIGDIR
+
+    def _ro_open(file, mode="r", *a, **k):
+        if any(c in mode for c in "wax+"):
+            # writes allowed only inside the ephemeral work dir (matplotlib font
+            # cache, scratch files) — never elsewhere on the filesystem.
+            p = os.path.realpath(file)
+            if not (p == _workdir or p.startswith(_workdir + os.sep)):
+                raise PermissionError("write outside sandbox dir is blocked")
+        return _real_open(file, mode, *a, **k)
+
+    safe_builtins["open"] = _ro_open
+
+    outputs = []  # [(filename, bytes)] downloadable result files
+
+    def save_result(filename, data):
+        if hasattr(data, "getvalue"):       # io.BytesIO/StringIO
+            data = data.getvalue()
+        if isinstance(data, str):
+            data = data.encode("utf-8")
+        outputs.append((str(filename), bytes(data)))
+
+    env = {"__builtins__": safe_builtins, "pd": pd, "np": np, "df": df,
+           "sheets": sheets, "save_result": save_result}
 
     out = io.StringIO()
     err = None
@@ -85,7 +116,7 @@ def main():
     if active is not None and "df" in env and env["df"] is not None:
         sheets[active] = env["df"]
     with open(out_pickle, "wb") as f:
-        pickle.dump(sheets, f)
+        pickle.dump({"sheets": sheets, "outputs": outputs}, f)
 
     real_stdout.write(json.dumps({"stdout": out.getvalue()[:8000], "error": err}))
 

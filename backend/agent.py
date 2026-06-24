@@ -21,8 +21,19 @@ TOOLS = [{
         "results. To modify: edit/reassign entries in `sheets` (e.g. "
         "sheets['Summary'] = sheets['Data'].groupby('region').sum()), or reassign "
         "`df` for the first sheet. Add a new sheet with sheets['Name'] = dataframe. "
-        "Changes persist across calls and become the downloadable result. "
-        "No filesystem or network access."
+        "Changes to sheets persist across calls and become the downloadable xlsx result.\n\n"
+        "To return ANY other office format, build the file in memory and call "
+        "save_result(filename, data) — data is bytes or a BytesIO. The filename's "
+        "extension sets the download type:\n"
+        "  • PDF: use matplotlib (import matplotlib; matplotlib.use('Agg')) — render a "
+        "table or chart to a BytesIO with savefig(buf, format='pdf'); its fonts support "
+        "Cyrillic. e.g. save_result('report.pdf', buf).\n"
+        "  • DOCX: use python-docx (import docx), doc.save(BytesIO) → save_result('doc.docx', buf).\n"
+        "  • CSV: save_result('data.csv', df.to_csv(index=False)).\n"
+        "  • XLSX: also fine via save_result, or just edit `sheets`.\n"
+        "  • PNG chart: matplotlib savefig(buf, format='png').\n"
+        "Available libs: pandas, numpy, matplotlib, openpyxl, python-docx, csv, io, base64. "
+        "No filesystem or network access — work in memory (io.BytesIO)."
     ),
     "input_schema": {
         "type": "object",
@@ -32,8 +43,11 @@ TOOLS = [{
 }]
 
 SYSTEM = (
-    "You are an assistant that works with spreadsheets for the user. You can run "
-    "Python (pandas) on their data via the run_pandas tool. The workbook may have "
+    "You are an assistant that works with office files for the user — spreadsheets, "
+    "documents, PDFs and images. You can run Python via the run_pandas tool, which "
+    "can also PRODUCE results in any format (xlsx, csv, pdf, docx, png) via "
+    "save_result — so if the user asks for a PDF, a Word document, a chart, etc., "
+    "generate it; never say you can only output xlsx. The workbook may have "
     "several sheets — they are in the `sheets` dict. If the user uploaded multiple "
     "files, each file's sheets are prefixed with its name (e.g. 'invoices_Sheet1'); "
     "you can join or merge across them and produce one result. Before destructive changes "
@@ -74,6 +88,7 @@ def run_stream(sheets: dict, history: list[dict], session_id: str = "", images: 
         messages[-1]["content"] = blocks
     start_hash = _hash(sheets)
     tool_ran = False
+    last_output = None  # (filename, bytes) from save_result, persists across turns
 
     try:
         for _ in range(MAX_TURNS):
@@ -95,8 +110,11 @@ def run_stream(sheets: dict, history: list[dict], session_id: str = "", images: 
                 tool_ran = True
                 code = tu.input.get("code", "")
                 yield _sse("tool", {"code": code})
-                sheets, stdout, err = sandbox.run(sheets, code)
-                payload = f"ERROR: {err}" if err else (stdout or "ok (no output)")
+                sheets, outputs, stdout, err = sandbox.run(sheets, code)
+                if outputs:
+                    last_output = outputs[-1]
+                note = f" [saved {last_output[0]}]" if outputs else ""
+                payload = f"ERROR: {err}" if err else ((stdout or "ok") + note)
                 results.append({
                     "type": "tool_result", "tool_use_id": tu.id, "content": payload,
                 })
@@ -104,8 +122,11 @@ def run_stream(sheets: dict, history: list[dict], session_id: str = "", images: 
 
         if session_id:
             files.session_put(session_id, sheets)  # persist accumulated edits
-        changed = tool_ran and (_hash(sheets) != start_hash or start_hash is None)
-        if changed:
+        if last_output:  # explicit file (pdf/docx/csv/png/xlsx) wins
+            name, data = last_output
+            did = files.stash(data, name)
+            yield _sse("done", {"download_id": did, "filename": name})
+        elif tool_ran and (_hash(sheets) != start_hash or start_hash is None):
             did = files.stash(files.sheets_to_xlsx_bytes(sheets), "result.xlsx")
             yield _sse("done", {"download_id": did, "filename": "result.xlsx"})
         else:
