@@ -1,0 +1,193 @@
+/* ===== App shell ===== */
+.app { display: flex; height: 100vh; background: var(--bg); position: relative; }
+
+/* ===== Sidebar ===== */
+.sidebar {
+  width: 268px; flex-shrink: 0; background: var(--sidebar);
+  border-right: 1px solid var(--border); display: flex; flex-direction: column;
+  padding: 16px; z-index: 20;
+}
+.sidebarHead { display: flex; align-items: center; gap: 10px; padding: 4px 4px 16px; }
+.logoText { font-size: 16px; font-weight: 800; letter-spacing: -0.2px; color: var(--text); }
+
+.newChatBtn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 11px 14px; border-radius: 12px; border: none; background: var(--accent);
+  color: var(--accent-on); font-weight: 700; font-size: 14px; cursor: pointer;
+  box-shadow: var(--shadow-btn);
+}
+
+.monoCaps { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; }
+.historyLabel { color: var(--text-muted); margin: 20px 4px 8px; }
+.historyList { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+
+.historyItem {
+  display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 10px;
+  cursor: pointer; background: transparent; border: 1px solid transparent;
+}
+.historyItemActive { background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); }
+.historyMeta { min-width: 0; flex: 1; }
+.historyTitle { font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.historyDesc { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.historyDelete { color: var(--text-muted); display: flex; padding: 2px; background: none; border: none; cursor: pointer; }
+
+.skeletonBar { height: 46px; border-radius: 10px; background: linear-gradient(90deg, var(--border) 25%, var(--surface) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; margin-bottom: 4px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.profileRow { display: flex; align-items: center; gap: 10px; padding-top: 14px; margin-top: 8px; border-top: 1px solid var(--border); }
+.profileAvatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--accent-on); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.profileMeta { flex: 1; min-width: 0; }
+.profileName { font-size: 13px; font-weight: 600; color: var(--text); }
+.profileSub { font-size: 10.5px; color: var(--text-muted); line-height: 1.4; }
+
+.sidebarOverlay { display: none; }
+
+/* ===== Main ===== */
+.main { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; }
+
+.dropOverlay {
+  position: absolute; inset: 14px; z-index: 9; border: 2px dashed var(--accent); border-radius: 16px;
+  background: var(--accent-soft); display: flex; align-items: center; justify-content: center;
+  color: var(--accent); font-weight: 700; font-size: 16px; pointer-events: none;
+}
+
+.header {
+  height: 60px; flex-shrink: 0; border-bottom: 1px solid var(--border); display: flex;
+  align-items: center; justify-content: space-between; padding: 0 26px; background: var(--bg); gap: 10px;
+}
+.headerLeft { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.headerTitle { margin: 0; font-size: 16px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.headerTag { color: var(--accent); background: var(--accent-soft); padding: 3px 7px; border-radius: 6px; }
+.headerActions { display: flex; align-items: center; gap: 8px; position: relative; flex-shrink: 0; }
+
+.roundBtn.hamburgerBtn { display: none; }
+
+.iconBtn {
+  display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary);
+  cursor: pointer; font-size: 12px; font-weight: 600; text-decoration: none; flex-shrink: 0;
+}
+
+.versionsWrap { position: relative; }
+.versionsDropdown {
+  position: absolute; top: calc(100% + 8px); right: 0; width: 260px; max-height: 320px; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-card);
+  padding: 6px; z-index: 30;
+}
+.versionsEmpty { padding: 10px 8px; font-size: 12.5px; color: var(--text-muted); }
+.versionsItem {
+  display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; text-decoration: none;
+  color: var(--text); font-size: 12.5px;
+}
+.versionsItem:hover { background: var(--bg); }
+.versionsItemName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.versionsItemIdx { color: var(--text-muted); font-size: 10.5px; }
+
+/* ===== Messages ===== */
+.messages { flex: 1; overflow-y: auto; padding: 26px 26px 8px; }
+.messagesInner { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+
+.emptyState { margin: auto; text-align: center; color: var(--text-secondary); max-width: 440px; padding-top: 12vh; }
+.emptyOrbWrap { display: flex; justify-content: center; margin-bottom: 18px; }
+.emptyTitle { font-size: 16px; font-weight: 700; color: var(--text); margin: 0 0 6px; }
+.emptyDesc { font-size: 13.5px; line-height: 1.5; margin: 0 0 18px; }
+
+.chipsRow { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.chip {
+  font-size: 12.5px; font-weight: 600; color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px; cursor: pointer;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+
+.userMsgWrap { align-self: flex-end; max-width: 82%; }
+.userBubble { background: var(--accent); color: var(--accent-on); padding: 11px 14px; border-radius: 18px 18px 4px 18px; box-shadow: var(--shadow-btn); }
+.userFileRow { display: flex; align-items: center; gap: 9px; background: rgba(255,255,255,.12); border-radius: 10px; padding: 7px 9px; margin-bottom: 8px; }
+.userFileMeta { min-width: 0; }
+.userFileName { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.userFileSize { font-size: 10.5px; opacity: .8; }
+.userText { font-size: 14.5px; line-height: 1.55; white-space: pre-wrap; }
+
+.assistantMsgWrap { display: flex; gap: 12px; align-items: flex-start; }
+.assistantBody { min-width: 0; flex: 1; max-width: 620px; }
+.assistantText { font-size: 14.5px; line-height: 1.55; color: var(--text); white-space: pre-wrap; }
+
+.toolDetails { margin-top: 10px; }
+.toolSummary { color: var(--text-muted); cursor: pointer; list-style: none; }
+.toolPre { background: var(--surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 10px; border-radius: 10px; font-size: 11.5px; overflow-x: auto; margin-top: 8px; }
+
+.errorBanner {
+  margin-top: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--file-pdf-bg); color: var(--file-pdf-fg); border-radius: 10px; padding: 9px 12px; font-size: 13px;
+}
+.errorRetryBtn {
+  border: 1px solid currentColor; background: none; color: inherit; border-radius: 999px;
+  padding: 3px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer;
+}
+
+.stoppedNote { margin-top: 6px; font-size: 11.5px; color: var(--text-muted); font-style: italic; }
+
+/* preview table */
+.previewWrap { margin-top: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px; box-shadow: var(--shadow-card); }
+.previewTabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+.previewTab { font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg); color: var(--text-secondary); cursor: pointer; }
+.previewTabActive { background: var(--accent); color: var(--accent-on); border-color: var(--accent); }
+.previewTableScroll { max-height: 280px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+.previewTable { border-collapse: collapse; font-size: 12px; width: 100%; }
+.previewTable th { position: sticky; top: 0; background: var(--bg); text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-weight: 700; white-space: nowrap; }
+.previewTable td { padding: 5px 10px; border-bottom: 1px solid var(--border); color: var(--text); white-space: nowrap; }
+.previewNote { margin-top: 7px; font-size: 10.5px; color: var(--text-muted); }
+
+.downloadCard { margin-top: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; box-shadow: var(--shadow-card); }
+.chartImg { display: block; max-width: 100%; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 12px; cursor: zoom-in; }
+.downloadLabel { color: var(--text-muted); margin-bottom: 10px; }
+.downloadRow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.downloadBtn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 11px; background: var(--accent); color: var(--accent-on); font-weight: 700; font-size: 13.5px; text-decoration: none; box-shadow: var(--shadow-btn); }
+.usageBadge { color: var(--text-muted); }
+
+/* ===== Input dock ===== */
+.dock { padding: 10px 26px 18px; background: var(--bg); }
+.dockInner { max-width: 760px; margin: 0 auto; }
+
+.attachedFiles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.attachedFile { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px 6px 7px; box-shadow: var(--shadow-card); }
+.attachedFileImg { width: 30px; height: 30px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.attachedFileName { font-size: 12.5px; font-weight: 600; color: var(--text); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attachedFileSize { font-size: 10.5px; color: var(--text-muted); }
+.attachedFileRemove { color: var(--text-muted); cursor: pointer; display: flex; background: none; border: none; padding: 0; }
+
+.sentFileNote { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+
+.inputBar { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 7px; box-shadow: var(--shadow-card); }
+.roundBtn { width: 38px; height: 38px; flex-shrink: 0; border-radius: 11px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.textInput { flex: 1; border: none; outline: none; background: transparent; color: var(--text); font-size: 14.5px; font-family: inherit; }
+.sendBtn { width: 38px; height: 38px; flex-shrink: 0; border-radius: 11px; border: none; background: var(--accent); color: var(--accent-on); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-btn); }
+.sendBtnDisabled { cursor: default; opacity: .5; }
+.stopBtn { background: var(--danger); }
+
+.hintText { font-size: 10.5px; color: var(--text-muted); letter-spacing: .5px; margin-top: 8px; text-align: center; }
+
+/* ===== Toasts ===== */
+.toastStack { position: fixed; bottom: 18px; right: 18px; z-index: 100; display: flex; flex-direction: column; gap: 8px; max-width: 320px; }
+.toast {
+  background: var(--text); color: var(--bg); padding: 11px 14px; border-radius: 10px; font-size: 13px;
+  box-shadow: var(--shadow-card); animation: toastIn .18s ease-out;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed; inset: 0 auto 0 0; transform: translateX(-100%); transition: transform .2s ease-out;
+    box-shadow: 0 0 0 1px var(--border);
+  }
+  .sidebarOpen { transform: translateX(0); }
+  .sidebarOverlay {
+    display: block; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 19;
+  }
+  .roundBtn.hamburgerBtn { display: flex; }
+  .header { padding: 0 14px; }
+  .messages { padding: 18px 14px 8px; }
+  .dock { padding: 8px 14px 14px; }
+  .userMsgWrap { max-width: 92%; }
+  .assistantBody { max-width: 100%; }
+}

@@ -98,6 +98,7 @@ def run_stream(sheets: dict, history: list[dict], session_id: str = "", images: 
     start_hash = _hash(sheets)
     tool_ran = False
     last_output = None  # (filename, bytes) from save_result, persists across turns
+    usage_in = usage_out = 0
 
     try:
         for _ in range(MAX_TURNS):
@@ -108,6 +109,8 @@ def run_stream(sheets: dict, history: list[dict], session_id: str = "", images: 
                 for text in stream.text_stream:
                     yield _sse("text", text)
                 final = stream.get_final_message()
+                usage_in += final.usage.input_tokens
+                usage_out += final.usage.output_tokens
 
             messages.append({"role": "assistant", "content": final.content})
             tool_uses = [b for b in final.content if b.type == "tool_use"]
@@ -131,14 +134,20 @@ def run_stream(sheets: dict, history: list[dict], session_id: str = "", images: 
 
         if session_id:
             files.session_put(session_id, sheets)  # persist accumulated edits
+
+        meta = {
+            "usage": {"input_tokens": usage_in, "output_tokens": usage_out},
+            "model": MODEL,
+            "preview": files.sheets_preview(sheets) if sheets else None,
+        }
         if last_output:  # explicit file (pdf/docx/csv/png/xlsx) wins
             name, data = last_output
             did = files.stash(data, name)
-            yield _sse("done", {"download_id": did, "filename": name})
+            yield _sse("done", {"download_id": did, "filename": name, **meta})
         elif tool_ran and (_hash(sheets) != start_hash or start_hash is None):
             did = files.stash(files.sheets_to_xlsx_bytes(sheets), "result.xlsx")
-            yield _sse("done", {"download_id": did, "filename": "result.xlsx"})
+            yield _sse("done", {"download_id": did, "filename": "result.xlsx", **meta})
         else:
-            yield _sse("done", {})
+            yield _sse("done", meta)
     except Exception as e:  # noqa: BLE001
         yield _sse("error", {"message": str(e)})

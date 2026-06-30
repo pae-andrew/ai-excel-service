@@ -99,6 +99,21 @@ def sheets_to_xlsx_bytes(sheets: dict[str, pd.DataFrame]) -> bytes:
     return bio.getvalue()
 
 
+def sheets_preview(sheets: dict[str, pd.DataFrame], max_rows: int = 50, max_cols: int = 30, max_sheets: int = 8) -> dict:
+    """JSON-safe preview of the current sheets for the frontend table viewer.
+    Cells are stringified (display-only, not for re-editing)."""
+    out = {}
+    for name, df in list(sheets.items())[:max_sheets]:
+        head = df.iloc[:max_rows, :max_cols]
+        out[name] = {
+            "columns": [str(c) for c in head.columns],
+            "rows": head.astype(str).where(head.notna(), "").values.tolist(),
+            "total_rows": len(df),
+            "total_cols": len(df.columns),
+        }
+    return out
+
+
 def schema_markdown(sheets: dict[str, pd.DataFrame]) -> str:
     parts = []
     for name, df in sheets.items():
@@ -110,11 +125,11 @@ def schema_markdown(sheets: dict[str, pd.DataFrame]) -> str:
     return f"Sheets: {list(sheets)}\n\n" + "\n\n".join(parts)
 
 
-def stash(data: bytes, filename: str) -> str:
+def stash(data: bytes, filename: str, ttl_s: int = TTL_S) -> str:
     _gc()
     did = uuid.uuid4().hex
     with _lock:
-        _store[did] = (time.time() + TTL_S, data, filename)
+        _store[did] = (time.time() + ttl_s, data, filename)
     return did
 
 

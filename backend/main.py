@@ -5,15 +5,19 @@ import base64
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, Response
+from pydantic import BaseModel
 
 import agent
 import files
+from google_sheets import router as google_router
 
 app = FastAPI(title="Excel AI assistant")
 
 IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
                ".webp": "image/webp", ".gif": "image/gif"}
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
+SHARE_TTL_S = 24 * 60 * 60          # read-only chat links outlive the 15-min file/session TTL
+MAX_SHARE_BYTES = 2 * 1024 * 1024   # a transcript, not an attachment dump
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,6 +25,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(google_router)
 
 
 @app.get("/health")
@@ -67,6 +72,31 @@ async def chat(
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+class ShareIn(BaseModel):
+    title: str = "Чат"
+    msgs: list[dict]
+
+
+@app.post("/share")
+def create_share(payload: ShareIn):
+    if not payload.msgs:
+        raise HTTPException(400, "msgs required")
+    data = json.dumps({"title": payload.title, "msgs": payload.msgs}).encode()
+    if len(data) > MAX_SHARE_BYTES:
+        raise HTTPException(400, "чат слишком большой для шеринга")
+    sid = files.stash(data, "share.json", ttl_s=SHARE_TTL_S)
+    return {"share_id": sid}
+
+
+@app.get("/share/{sid}")
+def get_share(sid: str):
+    item = files.fetch(sid)
+    if not item:
+        raise HTTPException(404, "ссылка истекла или не найдена")
+    data, _ = item
+    return json.loads(data)
 
 
 DOWNLOAD_MIME = {
